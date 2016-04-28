@@ -25,7 +25,7 @@ int main(int argc, char** argv)
   // Create grid map.
   GridMap map({"elevation"});
   map.setFrameId("map");
-  //map.setGeometry(Length(1.2, 2.0), 0.03);
+  map.setGeometry(Length(1.2, 2.0), 0.03);
   ROS_INFO("Created map with size %f x %f m (%i x %i cells).",
     map.getLength().x(), map.getLength().y(),
     map.getSize()(0), map.getSize()(1));
@@ -68,34 +68,11 @@ void populateMap(GridMap &map, string path)
   cv_bridge::CvImage cv_image;
   path = "/home/chirag/test/src/deception_simulation/files/exp_11.png";
   Mat img = imread(path,CV_LOAD_IMAGE_GRAYSCALE);
-  cout<<"image size ="<<img.rows<<","<<img.cols;
-  map.setGeometry(Length(img.rows,img.cols),1);
-  //imshow("Image",img);
-  //waitKey(0);
-  int r = 0, c = 0;
-  // for (GridMapIterator it(map); !it.isPastEnd(); ++it) {
-  //   Position position;
-  //   map.getPosition(*it, position);
-  //   //cout<<"position"<<position.x()<<","<<position.y()<<"\n";
-  //   map.at("elevation", *it) = img.at<uchar>((uchar)position.x(),(uchar)position.y());
-  //   if(c == img.cols)
-  //   {
-  //     c = 0;
-  //     r++;
-  //   }
-    
-  // }
-
-  for(int i = 0; i < img.rows; i++)
-  {
-    for(int j = 0; j < img.cols;j++)
-    { 
-      Position pos(i,j);
-      Index index;
-      map.getIndex(pos,index);
-      map.at("elevation",index) = img.at<uchar>(i,j)<200?10:0;
-    }
-  }
-  
+  sensor_msgs::Image img_msg = *cv_bridge::CvImage(std_msgs::Header(), "mono8", img).toImageMsg();
+  // imshow("First Image",img);
+  // waitKey(0);
+  Position p(0,0);
+  GridMapRosConverter::initializeFromImage(img_msg,1.0,map,p);
+  GridMapRosConverter::addLayerFromImage(img_msg,"elevation",map,0.0,10.0);  
   std::cout<<"Map generated = "<<map.getLength().x()<<map.getLength().y()<<map.getSize();
 }
