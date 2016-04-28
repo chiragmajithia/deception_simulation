@@ -1,0 +1,10 @@
+<launch>
+  <!-- Launch the grid map simple demo node -->
+  <node pkg="deception_simulation" type="generate_map_node" name="grid_map_simple_demo" output="screen" />
+  <!-- Launch the grid map visualizer -->
+  <node pkg="deception_simulation" type="generate_map_visualization_node" name="grid_map_visualization" output="screen">
+    <rosparam command="load" file="$(find deception_simulation)/config/simple_demo.yaml" />
+  </node>
+  <!-- Launch RViz with the demo configuration -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find deception_simulation)/rviz/visualize.rviz" />
+</launch>
