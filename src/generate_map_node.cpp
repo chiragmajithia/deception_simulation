@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     map.getSize()(0), map.getSize()(1));
 
   // Work with grid map in a loop.
-  ros::Rate rate(30.0);
+  ros::Rate rate(0.1);
   // populateMap(map);
   populateMap(map,"mapping done");
   while (nh.ok()) {
@@ -66,36 +66,32 @@ void populateMap(GridMap &map, string path)
 {
   map.setBasicLayers({"elevation"});
   cv_bridge::CvImage cv_image;
-  path = "/home/chirag/test/src/deception_simulation/files/exp_11.png";
+  path = "/home/chirag/test/src/deception_simulation/files/exp_11-sparse.png";
   Mat img = imread(path,CV_LOAD_IMAGE_GRAYSCALE);
   cout<<"image size ="<<img.rows<<","<<img.cols;
-  map.setGeometry(Length(img.rows,img.cols),1);
+  map.setGeometry(Length(img.rows,img.cols),1.0);
   //imshow("Image",img);
   //waitKey(0);
-  int r = 0, c = 0;
-  // for (GridMapIterator it(map); !it.isPastEnd(); ++it) {
-  //   Position position;
-  //   map.getPosition(*it, position);
-  //   //cout<<"position"<<position.x()<<","<<position.y()<<"\n";
-  //   map.at("elevation", *it) = img.at<uchar>((uchar)position.x(),(uchar)position.y());
-  //   if(c == img.cols)
-  //   {
-  //     c = 0;
-  //     r++;
-  //   }
-    
-  // }
-
-  for(int i = 0; i < img.rows; i++)
-  {
-    for(int j = 0; j < img.cols;j++)
-    { 
-      Position pos(i,j);
-      Index index;
-      map.getIndex(pos,index);
-      map.at("elevation",index) = img.at<uchar>(i,j)<200?10:0;
-    }
+  for (GridMapIterator it(map); !it.isPastEnd(); ++it) {
+    Position position;
+    map.getPosition(*it, position);
+    //cout<<"position"<<position.x()<<","<<position.y()<<"\n";
+    int x = (img.rows/2) + position.x()+0.5; 
+    int y = (img.cols/2) + position.y()+0.5;
+    map.at("elevation", *it) = img.at<uchar>(x,y)<200?10:0;    
   }
+
+  // int index = 0;
+  // for(int i = 0; i < img.rows; i++)
+  // {
+  //   for(int j = 0; j < img.cols;j++)
+  //   { 
+  //     Position pos(j,i);
+  //     Index index;
+  //     map.getIndex(pos,index);
+  //     map.at("elevation",index) = img.at<uchar>(i,j)<200?10:0;
+  //   }
+  // }
   
   std::cout<<"Map generated = "<<map.getLength().x()<<map.getLength().y()<<map.getSize();
 }
