@@ -73,6 +73,19 @@ void populateMap(GridMap &map, string path)
   // waitKey(0);
   Position p(0,0);
   GridMapRosConverter::initializeFromImage(img_msg,1.0,map,p);
-  GridMapRosConverter::addLayerFromImage(img_msg,"elevation",map,0.0,10.0);  
+  GridMapRosConverter::addColorLayerFromImage(img_msg,"elevation",map);  
   std::cout<<"Map generated = "<<map.getLength().x()<<map.getLength().y()<<map.getSize();
+
+  
+  // int index = 0;
+  // for(int i = 0; i < img.rows; i++)
+  // {
+  //   for(int j = 0; j < img.cols;j++)
+  //   { 
+  //     Position pos(j,i);
+  //     Index index;
+  //     map.getIndex(pos,index);
+  //     map.at("elevation",index) = img.at<uchar>(i,j)<200?10:0;
+  //   }
+  // }
 }

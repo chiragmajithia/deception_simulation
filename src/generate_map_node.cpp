@@ -3,95 +3,64 @@
 #include <grid_map_msgs/GridMap.h>
 #include <cmath>
 #include <iostream>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/Image.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-
+#include <tf/transform_broadcaster.h>
+#include <ReadGridMapFromImage.cpp>
 using namespace grid_map;
 using namespace std;
 using namespace cv;
-void populateMap(GridMap &map);
-void populateMap(GridMap &map,string path);
+
+void populateMap(GridMap&,string,float,float);
+void setupTransform(tf::Transform&,GridMap&);
 
 int main(int argc, char** argv)
 {
-  // Initialize node and publisher.
+  float scale = 0.5;
+  float res = 0.5;
+  string file_path = "/home/chirag/test/src/deception_simulation/files/exp_11-sparse.png";
+
+ 
+  tf::Transform transform;
+
   ros::init(argc, argv, "grid_map_simple_demo");
+  static tf::TransformBroadcaster br;
   ros::NodeHandle nh("~");
   ros::Publisher publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
 
-  // Create grid map.
-  GridMap map({"elevation"});
-  map.setFrameId("map");
-  //map.setGeometry(Length(1.2, 2.0), 0.03);
-  ROS_INFO("Created map with size %f x %f m (%i x %i cells).",
-    map.getLength().x(), map.getLength().y(),
-    map.getSize()(0), map.getSize()(1));
+  // Create grid map from image at path, scaling factor 'scale' and resolution 'res'.
+  GridMap map({"terrain"});
+  map.setBasicLayers({"terrain"});
+  map.setFrameId("/odom");
+  ReadGridMapFromImage::populateMap(map,"terrain",file_path,scale,res);
+  
 
-  // Work with grid map in a loop.
-  ros::Rate rate(0.1);
-  // populateMap(map);
-  populateMap(map,"mapping done");
+  ros::Rate rate(1);
+  ros::Time startTime = ros::Time::now();
+  ros::Duration duration(0.0);
   while (nh.ok()) {
-
-    // Add data to grid map.
-    // Publish grid map.
-
+    ros::Time time = ros::Time::now();
+    duration = time - startTime;
+    const double t = duration.toSec();
     grid_map_msgs::GridMap message;
+    Position newPosition = 1* t * Position(cos(t), sin(t));
+    //map.setPosition(newPosition);
+    setupTransform(transform,map);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/odom", "/map"));
     GridMapRosConverter::toMessage(map, message);
     publisher.publish(message);
+    setupTransform(transform,map);
     ROS_INFO_THROTTLE(1.0, "Grid map (timestamp %f) published.", message.info.header.stamp.toSec());
-
-    // Wait for next cycle.
+    //br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", turtle_name));  
     rate.sleep();
   }
 
   return 0;
 }
 
-void populateMap(GridMap &map)
+void setupTransform(tf::Transform &transform, GridMap &map)
 {
-  ros::Time time = ros::Time::now();
-  for (GridMapIterator it(map); !it.isPastEnd(); ++it) {
-    Position position;
-    map.getPosition(*it, position);
-    map.at("elevation", *it) = -0.04 + 0.2 * std::sin(3.0 * time.toSec() + 5.0 * position.y()) * position.x();
-  }
-  map.setTimestamp(time.toNSec());
-}
-
-void populateMap(GridMap &map, string path)
-{
-  map.setBasicLayers({"elevation"});
-  cv_bridge::CvImage cv_image;
-  path = "/home/chirag/test/src/deception_simulation/files/exp_11-sparse.png";
-  Mat img = imread(path,CV_LOAD_IMAGE_GRAYSCALE);
-  cout<<"image size ="<<img.rows<<","<<img.cols;
-  map.setGeometry(Length(img.rows,img.cols),1.0);
-  //imshow("Image",img);
-  //waitKey(0);
-  for (GridMapIterator it(map); !it.isPastEnd(); ++it) {
-    Position position;
-    map.getPosition(*it, position);
-    //cout<<"position"<<position.x()<<","<<position.y()<<"\n";
-    int x = (img.rows/2) + position.x()+0.5; 
-    int y = (img.cols/2) + position.y()+0.5;
-    map.at("elevation", *it) = img.at<uchar>(x,y)<200?10:0;    
-  }
-
-  // int index = 0;
-  // for(int i = 0; i < img.rows; i++)
-  // {
-  //   for(int j = 0; j < img.cols;j++)
-  //   { 
-  //     Position pos(j,i);
-  //     Index index;
-  //     map.getIndex(pos,index);
-  //     map.at("elevation",index) = img.at<uchar>(i,j)<200?10:0;
-  //   }
-  // }
-  
-  std::cout<<"Map generated = "<<map.getLength().x()<<map.getLength().y()<<map.getSize();
+  Position p = map.getPosition();
+  transform.setOrigin( tf::Vector3(p.x(),p.y(), 0.0));
+  tf::Quaternion q;
+  q.setRPY(0, 0, 0);
+  transform.setRotation(q);
 }

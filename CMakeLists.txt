@@ -57,9 +57,9 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/grid_map_visualization_node.cpp
-# )
+ add_library( ReadFromImage
+  include/ReadGridMapFromImage.cpp
+)
 
 ## Declare a cpp executable
 add_executable(generate_map_visualization_node
@@ -75,6 +75,7 @@ add_executable(generate_map_node
 )
 target_link_libraries(
   generate_map_node
+  ReadFromImage
   ${catkin_LIBRARIES}
 )
 
