@@ -4,6 +4,10 @@ grid_map_visualizations:
     type: point_cloud
     params:
      layer: terrain
+    name: agent_points
+    type: point_cloud
+    params:
+     layer: squirrel
   - name: terrain_grid
     type: occupancy_grid
     params:

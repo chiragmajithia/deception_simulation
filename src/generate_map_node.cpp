@@ -5,6 +5,7 @@
 #include <iostream>
 #include <tf/transform_broadcaster.h>
 #include <ReadGridMapFromImage.cpp>
+#include "Agent.cpp"
 using namespace grid_map;
 using namespace std;
 using namespace cv;
@@ -32,16 +33,18 @@ int main(int argc, char** argv)
   map.setFrameId("/odom");
   ReadGridMapFromImage::populateMap(map,"terrain",file_path,scale,res);
   
+  Agent squirrel(&map,"squirrel");
 
   ros::Rate rate(1);
   ros::Time startTime = ros::Time::now();
   ros::Duration duration(0.0);
   while (nh.ok()) {
-    ros::Time time = ros::Time::now();
-    duration = time - startTime;
-    const double t = duration.toSec();
+    //ros::Time time = ros::Time::now();
+    //duration = time - startTime;
+    //const double t = duration.toSec();
     grid_map_msgs::GridMap message;
-    Position newPosition = 1* t * Position(cos(t), sin(t));
+    squirrel.spawn();
+    //Position newPosition = 1* t * Position(cos(t), sin(t));
     //map.setPosition(newPosition);
     setupTransform(transform,map);
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/odom", "/map"));
@@ -49,7 +52,6 @@ int main(int argc, char** argv)
     publisher.publish(message);
     setupTransform(transform,map);
     ROS_INFO_THROTTLE(1.0, "Grid map (timestamp %f) published.", message.info.header.stamp.toSec());
-    //br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", turtle_name));  
     rate.sleep();
   }
 

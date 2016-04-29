@@ -59,6 +59,7 @@ include_directories(
 ## Declare a cpp library
  add_library( ReadFromImage
   include/ReadGridMapFromImage.cpp
+  src/Agent.cpp
 )
 
 ## Declare a cpp executable
@@ -79,6 +80,12 @@ target_link_libraries(
   ${catkin_LIBRARIES}
 )
 
+# add_executable(Agent
+#   src/Agent.cpp
+# )
+# target_link_libraries(Agent
+#   ${catkin_LIBRARIES}
+#)
 
 #############
 ## Install ##

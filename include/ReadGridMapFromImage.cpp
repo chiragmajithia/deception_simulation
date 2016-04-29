@@ -29,7 +29,7 @@ namespace ReadGridMapFromImage {
       int y = (img.cols/2) + position.y()/res+res/2.0;
       map.at(layer, *it) = img.at<uchar>(x,y)<200?10:0;    
     }
-
+    map.setTimestamp(ros::Time::now().toNSec());
     ROS_INFO("Created map with size %f x %f m (%i x %i cells).",map.getLength().x(), map.getLength().y(),map.getSize()(0), map.getSize()(1));
   }
 }
