@@ -59,9 +59,20 @@ include_directories(
 ## Declare a cpp library
  add_library( ReadFromImage
   include/ReadGridMapFromImage.cpp
-  src/Agent.cpp
 )
+add_library(Agent
+  src/Agent.cpp
+  )
 
+
+add_executable(
+  squirrel_1_node
+  src/squirrel_1_node.cpp
+  )
+target_link_libraries(squirrel_1_node
+    Agent
+    ${catkin_LIBRARIES}
+  )
 ## Declare a cpp executable
 add_executable(generate_map_visualization_node
   src/generate_map_visualization.cpp
@@ -77,6 +88,7 @@ add_executable(generate_map_node
 target_link_libraries(
   generate_map_node
   ReadFromImage
+  Agent
   ${catkin_LIBRARIES}
 )
 

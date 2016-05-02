@@ -22,7 +22,7 @@ int main(int argc, char** argv)
  
   tf::Transform transform;
 
-  ros::init(argc, argv, "grid_map_simple_demo");
+  ros::init(argc, argv, "grid_map_node");
   static tf::TransformBroadcaster br;
   ros::NodeHandle nh("~");
   ros::Publisher publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
@@ -32,21 +32,21 @@ int main(int argc, char** argv)
   map.setBasicLayers({"terrain"});
   map.setFrameId("/odom");
   ReadGridMapFromImage::populateMap(map,"terrain",file_path,scale,res);
-  
-  Agent squirrel(&map,"squirrel");
+  setupTransform(transform,map);
+  //Agent squirrel(&map,"squirrel");
 
-  ros::Rate rate(1);
+  ros::Rate rate(10);
   ros::Time startTime = ros::Time::now();
   ros::Duration duration(0.0);
   while (nh.ok()) {
-    //ros::Time time = ros::Time::now();
-    //duration = time - startTime;
-    //const double t = duration.toSec();
+    ros::Time time = ros::Time::now();
+    duration = time - startTime;
+    const double t = duration.toSec();
     grid_map_msgs::GridMap message;
-    squirrel.spawn();
+    //squirrel.spawn();
     //Position newPosition = 1* t * Position(cos(t), sin(t));
     //map.setPosition(newPosition);
-    setupTransform(transform,map);
+    //setupTransform(transform,map);
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/odom", "/map"));
     GridMapRosConverter::toMessage(map, message);
     publisher.publish(message);

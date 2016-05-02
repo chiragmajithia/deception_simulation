@@ -4,43 +4,134 @@
 #include <cmath>
 #include <iostream>
 #include <ctime>
+#include <ros/ros.h>
 
 using namespace std;
 using namespace grid_map;
 typedef Eigen::Vector2d Position;
 
-//void init(GridMap&);
 
 class Agent
 {
 private:
 	string name;
-	Position pos;
-	
-	Position generateRandomPosition(int max_x,int max_y,double res)
+	string map_topic;
+	tf::Transform transform;
+    tf::TransformBroadcaster br;
+	struct MapProperties
 	{
+		float h; //in m
+		float w;  // in m
+		int rows;	//indx
+		int cols;	//indx
+		float res;
+
+	} map_prop;
+
+
+	Position pos;
+	ros::NodeHandle& nodeHandle_;
+	ros::Subscriber mapSubscriber_;
+
+	
+	
+
+	Position generateRandomPosition()
+	{
+		int max_x = map_prop.rows;
+		int max_y = map_prop.cols;
+		int res = map_prop.res;
 		srand(time(NULL));
 		int  x_ = rand() % max_x - (max_x/2);
 		int  y_ = rand() % max_y - (max_y/2);
-		
 		return Position(x_*res,y_*res);
 	}
-public:
-	GridMap* map;
-	Agent(GridMap* map_,const string name_)
+
+	void displayProp()
 	{
-		map = map_;
+		cout<<map_prop.h<<"\n";
+		cout<<map_prop.w<<"\n";
+		cout<<map_prop.rows<<"\n";
+		cout<<map_prop.cols<<"\n";
+		cout<<map_prop.res<<"\n";
+	}
+
+	void updateMapProp()
+	{
+		map_prop.h = map->getLength().y();
+		map_prop.w = map->getLength().x();
+		map_prop.rows = map->getSize()[0];
+		map_prop.cols = map->getSize()[1];
+		map_prop.res = map->getResolution();	
+	}
+
+public:
+	bool isSubscribed_;
+	GridMap* map;
+	Agent(ros::NodeHandle& nodeHandle,const string name_, const string topic_name) : nodeHandle_(nodeHandle)
+	{
+		isSubscribed_ = false;
 		name = name_;
-		map->add(name_,0.0);
-		map->setTimestamp(ros::Time::now().toNSec());
+		map_topic = topic_name;
+		ROS_INFO("%s node started",name.c_str());
+		initialize();
 	}
 
 	~Agent()
-	{}
+	{
+		mapSubscriber_.shutdown();
+	}
+
+	void initialize()
+	{
+		if (!isSubscribed_){
+			ROS_INFO("In initialize");
+			updateSubscriptionCallback(ros::TimerEvent());
+			ROS_INFO("Grid map visualization initialized.");
+			updateMapProp();
+			displayProp();
+		}
+	}
+
+	void updateSubscriptionCallback(const ros::TimerEvent&)
+	{
+		ROS_INFO("In updateSubscriptionCallback");
+
+		if (!isSubscribed_) {
+
+			mapSubscriber_ = nodeHandle_.subscribe(map_topic, 1, &Agent::callback, this);
+			if(isSubscribed_)
+			{
+				//isSubscribed_ = true;
+				ROS_INFO("Subscribed to grid map at '%s'.", map_topic.c_str());
+			}
+			else
+			{
+				ROS_INFO("CANNOT Subscribed to grid map at '%s'.", map_topic.c_str());	
+			}
+		}
+	}
+
+	void callback(const grid_map_msgs::GridMap& message)
+	{
+		ROS_INFO("In call back %f",map_prop.res);
+		std::cout<<"in callback";
+		grid_map::GridMap map_;
+		grid_map::GridMapRosConverter::fromMessage(message, map_);
+		map=&map_;
+		updateMapProp();
+		displayProp();
+		if (map_prop.res>0.0)
+		{
+			isSubscribed_=true;	
+			//mapSubscriber_.shutdown();
+		}
+	}
 
 	void setPosition(Position p)
 	{
 		pos = p;
+		setTransform(p);
 	}
 
 	Position getPosition()
@@ -50,37 +141,29 @@ public:
 
 	void spawn()
 	{	
-		cout<<"Spawn!";
-		grid_map::Size s = map->getSize();
-		double res = map->getResolution();
-		std::cout<<"size"<<s(0)*res<<","<<s(1)*res<<"\n";
-		Position random = generateRandomPosition(s(0),s(1),res);
-		std::cout<<"random pos = "<<random(0)<<","<<random(1)<<"\n";
-		for (grid_map::CircleIterator iterator(*map,random, 5.0);!iterator.isPastEnd(); ++iterator) 
-		{
-			map->at(name, *iterator) = 10.0;
-		}
-		map->setTimestamp(ros::Time::now().toNSec());
+		Position p = generateRandomPosition();
+		setTransform(p);
+	}
+
+	void setTransform(Position p)
+	{
+		transform.setOrigin( tf::Vector3(pos.x(),pos.y(), 0.0));
+		tf::Quaternion q;
+		q.setRPY(0, 0, 0);
+		transform.setRotation(q);
+	}
+
+	void publishTransform()
+	{
+		//ROS_INFO("Publish Transform");
+		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),"/map", name));
 	}
 };
 
-// void init(GridMap &map)
-// {
-// 	float scale = 0.5;
-//   	float res = 0.5;
-//   	string file_path = "/home/chirag/test/src/deception_simulation/files/exp_11-sparse.png";
-// 	ReadGridMapFromImage::populateMap(map,"terrain",file_path,scale,res);
-// }
-// int main(int argc, char** argv)
-// {
-// 	GridMap map({"terrain"});
-//   	map.setBasicLayers({"terrain"});
-//   	map.setFrameId("/odom");
-//  	init(map);
-
-// 	std::cout<<"Hello World!";
-// 	Agent a(map);
-// 	a.setPosition(Position(2,3));
-// 	a.spawn();
-// 	std::cout<<a.getPosition()<<"\n";
-// }
+/**
+	THINGS TO DO:
+		Check if subscriber topic exists?
+		Wait for topic - if not existing
+		Retry subscription
+		Callback Rate more than Published 
+**/
